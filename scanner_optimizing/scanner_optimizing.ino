@@ -27,18 +27,12 @@
 
 
 //Global variable for depth map accesses
-
-
-
 int depthBaseline [Y_RES][X_RES];
 int depthNow [Y_RES][X_RES];
-int depthDiff [Y_RES][X_RES];
-
-//BLA::Matrix<Y_RES, X_RES> depthBaseline;
-//BLA::Matrix<Y_RES, X_RES> depthNow;
-//BLA::Matrix<Y_RES, X_RES> depthDifference;
 
 
+
+//Outputs 2D matrices for nice printing
 void printMatrix(int y_size, int x_size, int matrix[Y_RES][X_RES]){
   for(int i = 0; i<y_size; i++){
     for(int j = 0; j<x_size; j++){
