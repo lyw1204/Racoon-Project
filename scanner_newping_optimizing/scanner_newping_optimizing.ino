@@ -1,7 +1,6 @@
-
+#include <NewPing.h>
 #include <Stepper.h>
 #include <Servo.h>
-#include <NewPing.h>
 
 //Pin Mapping
 #define STEPPER_P1 4
@@ -14,22 +13,23 @@
 
 #define LIM_SW1 2
 
+//Ultrasonic Sensor Constants
 #define SONIC_TRIG 8
-#define SONIC_ECHO 9 
+#define SONIC_ECHO 9
+
 
 //Operation Constants
 #define STEPS_PER_ROT 2048
 #define STEPPER_SPD 7
 #define X_RES 27 // size of depth map
-#define Y_RES 9
-#define Y_OFFSET 150
-
+#define Y_RES 6
 
 #define X_RANGE 270
 #define Y_RANGE 90
 
+//Ultrasonic Constants
+#define MAX_DISTANCE 300
 #define SAMPLES 5
-#define MAXDIST 300
 
 
 //Global variable for depth map accesses
@@ -47,9 +47,7 @@ void printMatrix(int y_size, int x_size, int matrix[Y_RES][X_RES]){
       }
       Serial.print('\n');
     
-    }
-  
-  
+  }
   
   }
 class Scanner {
@@ -64,11 +62,30 @@ class Scanner {
 
 
     Servo servoY;
-    Stepper *stepperX = 0; //Fake init to appease the library gods
-    NewPing *scanner=0;
+    Stepper *stepperX; //Fake init to appease the library gods
+    NewPing *sonic;
+
+
+    int getSensor(){
+      return sonic->ping_cm();
+      }
+
 
    int avgSensor(int runs){
-    return scanner->convert_cm (scanner->ping_median(runs));   
+    int accumResults = 0;
+    int incomingResult = this->getSensor();
+    for(int i = 0; i<runs; i++){
+      if(incomingResult >=400){
+        incomingResult = 0;
+        runs -=1;
+        }
+      
+      accumResults += this->getSensor(); 
+      }
+
+    return accumResults/runs;
+    
+    
     }
 
       
@@ -94,7 +111,8 @@ class Scanner {
       stepperX = new Stepper(stepRot, step1, step2, step3, step4);
       stepperX->setSpeed(STEPPER_SPD);
 
-      scanner = new NewPing(sonicTrigPin, sonicEchoPin, MAXDIST);
+      //Initializes ultrasonic sensor
+      sonic = new NewPing (sonicTrigPin, sonicEchoPin, MAX_DISTANCE);
 
       //Configure pins
       pinMode(stepPin1, OUTPUT);
@@ -105,56 +123,55 @@ class Scanner {
       pinMode(servoPin, OUTPUT);
 
       pinMode(limSwPin, INPUT_PULLUP);
-
-      pinMode(sonicTrigPin, OUTPUT);
-      pinMode(sonicEchoPin, INPUT);
-
     }
 
     void powerOn() {
       //Connect power to stepper and servos
       scanner_en = true;
-      servoY.attach(servoPin);
+      servoY.attach(this->servoPin);
     }
 
     void powerOff() {
       //Disconnect powerto stepper and servos
-      this->scanner_en = false;
+      scanner_en = false;
       servoY.detach();
     }
 
-
     void goHome() {
       powerOn();
-      servoY.write(Y_OFFSET);
+
+      scanner_homed = false;
       while (digitalRead(this->limSwPin) == HIGH) {
-        this->stepperX->step(1);//Step motor until limit switch is clicked
+        
+        stepperX->step(1);//Step motor until limit switch is clicked
         delay(15);
       }
 
+      servoY.write(0);
 
       xPos = 0;
       yPos = 0;
       scanner_homed = true;
-      delay(300);
     }
 
     void goToPos(int x, int y) {
       //Connect power to servo and stepper
-      this->scanner_en = true;
+      scanner_en = true;
 
       //soft guard for invalid positions
       x = x % 360;
 
  
-      if (!this->scanner_homed) {
+      if (!scanner_homed) {
         //this->goHome();
       }
-      stepperX->step((x - xPos) / (360.0 / stepsPerRotation));
+      stepperX->step((x - xPos) / (360.0 / this->stepsPerRotation));
       servoY.write(y);
 
       xPos = x;
       yPos = y;
+      scanner_homed = false;
+
     }
     void scan_alt(bool baseline) {//Back and forth scanning through area
 
@@ -162,19 +179,19 @@ class Scanner {
       for (int i = 0; i < Y_RES; i++) { //Y axis
         for (int j = 0; j < X_RES; j++) { //X axis
           if (i % 2 == 0) {
-            this->goToPos(j * 10, Y_OFFSET-i * 10);
+            this->goToPos(j * 10, 120-i * 10);
             if(baseline)
-              depthBaseline[i][j]=this->avgSensor(SAMPLES);
+              depthBaseline[i][j]=avgSensor(SAMPLES);
             else
-              depthNow[i][j]=this->avgSensor(SAMPLES)-depthBaseline[i][j];
+              depthNow[i][j]=avgSensor(SAMPLES)-depthBaseline[i][j];
 
           }
           else {
-            this->goToPos((X_RES-1 - j) * 10, Y_OFFSET-i * 10);
+            goToPos((X_RES-1 - j) * 10, 120-i * 10);
             if(baseline)
-              depthBaseline[i][X_RES-1-j]=this->avgSensor(SAMPLES);
+              depthBaseline[i][X_RES-1-j]=avgSensor(SAMPLES);
             else
-              depthNow[i][X_RES-1-j]=this->avgSensor(SAMPLES)-depthBaseline[i][X_RES-1-j];
+              depthNow[i][X_RES-1-j]=avgSensor(SAMPLES)-depthBaseline[i][X_RES-1-j];
           }
           //delay(30);
         }
@@ -183,24 +200,23 @@ class Scanner {
       //Serial.println("SCAN COMPLETE");
       //Return scanner back to its resting position facing back
       goToPos(-45,0);
-      scanner_homed = false; 
 
-    }
+
 
 };
 
 
 //Initialize new scanner
-Scanner myScanner(STEPPER_P1, STEPPER_P2, STEPPER_P3, STEPPER_P4, STEPS_PER_ROT, STEPPER_SPD, SERVO_P1, LIM_SW1, SONIC_TRIG, SONIC_ECHO);
+Scanner *myScanner = new Scanner(STEPPER_P1, STEPPER_P2, STEPPER_P3, STEPPER_P4, STEPS_PER_ROT, 5, SERVO_P1, LIM_SW1, SONIC_TRIG, SONIC_ECHO);
 
-void setup() {
-  myScanner.goHome();
+
+  *myScanner->goHome();
   Serial.begin(9600);
-  myScanner.scan_alt(true);//Populates a baseline image
+  *myScanner->scan_alt(true);//Populates a baseline image
   delay(10000);//delay for placement of target
-  myScanner.goHome();
+  myScanner->goHome();
 
-  myScanner.scan_alt(false);
+  *myScanner->scan_alt(false);
   printMatrix(Y_RES,X_RES,depthNow);
   //printMatrix(Y_RES,X_RES,depthBaseline);
   //printMatrix(Y_RES,X_RES,depthNow);
