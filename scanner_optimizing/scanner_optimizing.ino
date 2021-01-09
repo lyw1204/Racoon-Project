@@ -22,14 +22,14 @@
 #define STEPPER_SPD 7
 #define X_RES 27 // size of depth map
 #define Y_RES 9
-#define Y_OFFSET 150
+#define Y_OFFSET 170
 
 
 #define X_RANGE 270
 #define Y_RANGE 90
 
-#define SAMPLES 5
-#define MAXDIST 300
+#define SAMPLES 3
+#define MAXDIST 150
 
 
 //Global variable for depth map accesses
@@ -68,7 +68,13 @@ class Scanner {
     NewPing *scanner=0;
 
    int avgSensor(int runs){
-    return scanner->convert_cm (scanner->ping_median(runs));   
+    int result = scanner->convert_cm (scanner->ping_median(runs));   \
+    if(result == 0){
+      return MAXDIST;
+      }
+    else{
+      return result;
+      }
     }
 
       
@@ -161,26 +167,25 @@ class Scanner {
 
       for (int i = 0; i < Y_RES; i++) { //Y axis
         for (int j = 0; j < X_RES; j++) { //X axis
-          if (i % 2 == 0) {
+          if (i % 2 == 0) {//Even Lines
             this->goToPos(j * 10, Y_OFFSET-i * 10);
             if(baseline)
-              depthBaseline[i][j]=this->avgSensor(SAMPLES);
+              depthBaseline[i][j]=avgSensor(SAMPLES);
             else
-              depthNow[i][j]=this->avgSensor(SAMPLES)-depthBaseline[i][j];
+              depthNow[i][j]=avgSensor(SAMPLES)-depthBaseline[i][j];
 
           }
           else {
             this->goToPos((X_RES-1 - j) * 10, Y_OFFSET-i * 10);
             if(baseline)
-              depthBaseline[i][X_RES-1-j]=this->avgSensor(SAMPLES);
+              depthBaseline[i][X_RES-1-j]=avgSensor(SAMPLES);
             else
-              depthNow[i][X_RES-1-j]=this->avgSensor(SAMPLES)-depthBaseline[i][X_RES-1-j];
+              depthNow[i][X_RES-1-j]=avgSensor(SAMPLES)-depthBaseline[i][X_RES-1-j];
           }
-          //delay(30);
+          delay(100);
         }
 
       }
-      //Serial.println("SCAN COMPLETE");
       //Return scanner back to its resting position facing back
       goToPos(-45,0);
       scanner_homed = false; 
@@ -203,12 +208,6 @@ void setup() {
   myScanner.scan_alt(false);
   printMatrix(Y_RES,X_RES,depthNow);
   //printMatrix(Y_RES,X_RES,depthBaseline);
-  //printMatrix(Y_RES,X_RES,depthNow);
-
-
-  //Serial<<depthBaseline<<"\n";
-  //Subtract(depthNow, depthBaseline,depthDifference);
-  //Serial<<depthDifference<<"\n";
 
 }
 
