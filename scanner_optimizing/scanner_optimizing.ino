@@ -15,7 +15,7 @@
 #define LIM_SW1 2
 
 #define SONIC_TRIG 8
-#define SONIC_ECHO 9 
+#define SONIC_ECHO 9
 
 //Operation Constants
 #define STEPS_PER_ROT 2048
@@ -35,77 +35,86 @@
 //Global variable for depth map accesses
 short depthBaseline [Y_RES][X_RES];
 short depthNow [Y_RES][X_RES];
+short processing [Y_RES - 2][X_RES - 2]; //Temporary matrix
+
 
 
 
 //Outputs 2D matrices for nice printing
-void printMatrix(short matrix[Y_RES][X_RES]){
-  for(int i = 0; i<Y_RES; i++){
-    for(int j = 0; j<X_RES; j++){
+void printMatrix(short matrix[Y_RES][X_RES]) {
+  for (int i = 0; i < Y_RES; i++) {
+    for (int j = 0; j < X_RES; j++) {
       Serial.print(matrix[i][j]);
       Serial.print(' ');
-      }
-      Serial.print('\n');
-    
     }
+    Serial.print('\n');
   }
+}
 
-//Filtering functions 
-short median (short* arr, short len){//Bubble sort and return middle
-  int temp = 0;
-  for(int j = 0; j<len; j++){
-    for(int i = 0; i<len-1; i++){
-      if(arr[i]>arr[i+1])
-      temp = arr[i];
-      arr[i] = arr[i+1];
-      arr[i+1] = temp;
-      }
-  }
+//Filtering functions
 
-  if(len%2 == 0){
-    return (arr[len/2]+arr[(len/2)-1])/2;    
+void diffMatrix(short matrix1[Y_RES][X_RES], short matrix2 [Y_RES][X_RES]) { //In place matrix difference done on matrix 2
+
+
+  for (int i = 0; i < Y_RES; i++) {
+    for (int j = 0; j < X_RES; j++) {
+      matrix2[i][j] -= matrix1[i][j];
     }
-  else{
-    return(arr[(len/2)]);
-    }
-  
+
   }
-void medianFilter(short matrix[Y_RES][X_RES]){
-  short processing [Y_RES-2][X_RES-2];//Temporary matrix for 
+}
+
+
+short median9 (short arr[9]) { //Bubble sort and return middle
+  short temp = 0;
+  for (int j = 0; j < 9; j++) {
+    for (int i = 0; i < 8; i++) {
+
+      if (arr[i] > arr[i + 1]) {
+        temp = arr[i];
+        arr[i] = arr[i + 1];
+        arr[i + 1] = temp;
+      }
+
+    }
+  }
+  return arr[4];
+}
+void medianFilter(short matrix[Y_RES][X_RES]) {//Applies median filter on matrix
   short neighbors [9];
-  
-  for(int i = 0; i<Y_RES-2; i++){//Populate processing matrix using medians of 9 neighbors
-    for(int j = 0; j<X_RES-2; j++){
+
+  for (int i = 0; i < Y_RES - 2; i++) { //Populate processing matrix using medians of 9 neighbors
+    for (int j = 0; j < X_RES - 2; j++) {
       //Populates 9 neighbors
-      neighbors[0] = matrix[i-1][j-1];
-      neighbors[1] = matrix[i][j-1];
-      neighbors[2] = matrix[i+1][j-1];
-      neighbors[3] = matrix[i-1][j];
-      neighbors[4] = matrix[i][j];
-      neighbors[5] = matrix[i+1][j];
-      neighbors[6] = matrix[i-1][j+1];
-      neighbors[7] = matrix[i][j+1];
-      neighbors[8] = matrix[i+1][j+1];
-      
-      processing[i][j] = median(neighbors,9);
-      
-          
+      neighbors[0] = matrix[i][j];
+      neighbors[1] = matrix[i + 1][j];
+      neighbors[2] = matrix[i + 2][j];
+      neighbors[3] = matrix[i][j + 1];
+      neighbors[4] = matrix[i + 1][j + 1];
+      neighbors[5] = matrix[i + 2][j + 1];
+      neighbors[6] = matrix[i][j + 2];
+      neighbors[7] = matrix[i + 1][j + 2];
+      neighbors[8] = matrix[i + 2][j + 2];
+
+      processing[i][j] = median9(neighbors);
+
     }
   }
-  
- for(int i = 0; i<Y_RES; i++){//Zero fill the matrix 
+  /*
+    for(int i = 0; i<Y_RES; i++){//Zero fill the matrix
     for(int j = 0; j<X_RES; j++){
       matrix[i][j] = 0;
-      }    
+      }
     }
-  
- for (int i = 1; i<Y_RES-1; i++){
-    for (int j= 1; j<X_RES-1; i++){//Change all pixels but the outer edge
-    matrix[i][j]= processing[i-1][j-1];
-    
-    
+  */
+  //Edge pixels will remain unchanged
+  for (int i = 1; i < Y_RES - 1; i++) {
+    for (int j = 1; j < X_RES - 1; j++) { //Change all pixels but the outer edge
+      matrix[i][j] = processing[i - 1][j - 1];
+
+
     }
-  
+
   }
 }
 
@@ -113,8 +122,8 @@ void medianFilter(short matrix[Y_RES][X_RES]){
 
 class Scanner {
   private:
-    int xPos = 0; 
-    int yPos = 0; 
+    int xPos = 0;
+    int yPos = 0;
     bool scanner_en = false;
     bool scanner_homed = false;
 
@@ -123,20 +132,23 @@ class Scanner {
 
 
     Servo servoY;
-    Stepper *stepperX = 0; //Fake init to appease the library gods
-    NewPing *scanner=0;
+    Stepper *stepperX = 0;
+    NewPing *scanner = 0;
 
-   short avgSensor(int runs){
-    int result = scanner->convert_cm (scanner->ping_median(runs));   
-    if(result == 0){
-      return MAXDIST;
+    short avgSensor(int runs) {
+      delay(50);
+      int result = scanner->convert_cm (scanner->ping_median(runs));
+
+      delay(50);
+      if (result == 0) {
+        return MAXDIST;
       }
-    else{
-      return result;
+      else {
+        return result;
       }
     }
 
-      
+
   public:
     Scanner(int step1, int step2, int step3, int step4, int stepRot, byte stepSpd, byte serv, byte limSw, byte sonicTrig, byte sonicEcho) {
       stepPin1 = step1;
@@ -148,10 +160,10 @@ class Scanner {
       servoPin = serv;
       limSwPin = limSw;
       sonicTrigPin = sonicTrig;
-      sonicEchoPin = sonicEcho; 
+      sonicEchoPin = sonicEcho;
 
 
-      
+
       scanner_en = false;
       scanner_homed = false;
 
@@ -211,7 +223,7 @@ class Scanner {
       //soft guard for invalid positions
       x = x % 360;
 
- 
+
       if (!this->scanner_homed) {
         //this->goHome();
       }
@@ -221,34 +233,64 @@ class Scanner {
       xPos = x;
       yPos = y;
     }
+    /*
+        void scan_alt(bool baseline) {//Back and forth scanning through area
 
-    void scan_alt(bool baseline) {//Back and forth scanning through area
 
+          for (int i = 0; i < Y_RES; i++) { //Y axis
+            for (int j = 0; j < X_RES; j++) { //X axis
+              if (i % 2 == 0) {//Even Lines
+                this->goToPos(j * 10, Y_OFFSET-i * 10);
+                if(baseline)
+                  depthBaseline[i][j]=avgSensor(SAMPLES);
+                else
+                  depthNow[i][j]=avgSensor(SAMPLES)-depthBaseline[i][j];
 
-      for (int i = 0; i < Y_RES; i++) { //Y axis
-        for (int j = 0; j < X_RES; j++) { //X axis
-          if (i % 2 == 0) {//Even Lines
-            this->goToPos(j * 10, Y_OFFSET-i * 10);
-            if(baseline)
-              depthBaseline[i][j]=avgSensor(SAMPLES);
-            else
-              depthNow[i][j]=avgSensor(SAMPLES)-depthBaseline[i][j];
+              }
+              else {//Odd Lines
+                this->goToPos((X_RES-1 - j) * 10-BACKLASH, Y_OFFSET-i * 10);
+                if(baseline)
+                  depthBaseline[i][X_RES-1-j]=avgSensor(SAMPLES);
+                else
+                  depthNow[i][X_RES-1-j]=avgSensor(SAMPLES)-depthBaseline[i][X_RES-1-j];
+              }
+              delay(100);
+            }
 
           }
-          else {//Odd Lines
-            this->goToPos((X_RES-1 - j) * 10-BACKLASH, Y_OFFSET-i * 10);
-            if(baseline)
-              depthBaseline[i][X_RES-1-j]=avgSensor(SAMPLES);
-            else
-              depthNow[i][X_RES-1-j]=avgSensor(SAMPLES)-depthBaseline[i][X_RES-1-j];
-          }
-          delay(100);
+          //Return scanner back to its resting position facing back
+          goToPos(-45,0);
+          scanner_homed = false;
+
+        }
+    */
+
+
+    void scanFaster (short matrix [Y_RES][X_RES]) {
+      for (int j = 0; j < X_RES; j++) {
+        for (int i = 0; i < Y_RES; i++) {
+
+          goToPos(j * 10, Y_OFFSET - i * 10);
+          matrix[i][j] = avgSensor(SAMPLES);
+
+
+          //      else{
+          //       goToPos(j*10, (Y_OFFSET-(Y_RES-1-i)*10));
+          //      matrix[i][Y_RES-1-j] = avgSensor(SAMPLES);
+
+
+
         }
 
+
+
+
       }
+
+
       //Return scanner back to its resting position facing back
-      goToPos(-45,0);
-      scanner_homed = false; 
+      goToPos(-45, 0);
+      scanner_homed = false;
 
     }
 
@@ -261,20 +303,16 @@ Scanner myScanner(STEPPER_P1, STEPPER_P2, STEPPER_P3, STEPPER_P4, STEPS_PER_ROT,
 void setup() {
   myScanner.goHome();
   Serial.begin(9600);
-  myScanner.scan_alt(true);//Populates a baseline image
-  delay(10000);//delay for placement of target
-  myScanner.goHome();
+  myScanner.scanFaster(depthBaseline);//Populates a baseline image
+  delay(10000);
+  myScanner.scanFaster(depthNow);
 
-  myScanner.scan_alt(false);
-  Serial.print("Unfiltered \n");
-  printMatrix(depthNow);
-  Serial.print("Filtered \n");
-
-  medianFilter(depthNow);
-  printMatrix(depthNow);
+  diffMatrix(depthBaseline, depthNow);//Subtract baseline from depthNow
+  medianFilter(depthNow);//Make it look nice and pretty
+  printMatrix(depthNow);//printout
 
 }
 
-void loop() {  
+void loop() {
 
 }
