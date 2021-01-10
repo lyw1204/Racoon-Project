@@ -1,0 +1,27 @@
+%R1=readmatrix("C:\Users\Uer\Desktop\CLASS\capstone\pic\filterbag.txt");
+%R1=readmatrix("C:\Users\Uer\Desktop\CLASS\capstone\pic\filterperson2.txt");
+R1=readmatrix("C:\Users\Uer\Desktop\CLASS\capstone\pic\filtertest.txt");
+R3=zeros(9,1);
+R4=zeros(9,1);
+n=0;
+for i=1:1:9
+    for j=1:1:27
+        if R1(i,j)<0
+            R3(i,1)=R3(i,1)+1;
+        end
+    end
+end
+for i=1:9
+    if R3(i,1)>4
+       R4(i,1)=i;
+    end
+end
+
+[MAX,I1]=max(R4(R4>0)); %find the position of maximum non-zero value
+[MIN,I2]=min(R4(R4>0)); %find the position of minimum non-zero value
+
+if(I1-I2)>3
+    disp('It is a human');
+else 
+    disp('It is an animal'); 
+end
