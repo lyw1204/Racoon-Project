@@ -1,42 +1,46 @@
+#include <Wire.h>
+
 
 #include <Stepper.h>
 #include <Servo.h>
 #include <NewPing.h>
+
 
 //Pin Mapping
 #define STEPPER_P1 4
 #define STEPPER_P2 6
 #define STEPPER_P3 5
 #define STEPPER_P4 7
-
 #define SERVO_P1 3
-
-
 #define LIM_SW1 2
-
 #define SONIC_TRIG 8
 #define SONIC_ECHO 9
 
 //Operation Constants
 #define STEPS_PER_ROT 2048
 #define STEPPER_SPD 7
-#define X_RES 27 // size of depth map
-#define Y_RES 9
-#define Y_OFFSET 170
-#define BACKLASH 5 //degrees of gear backlash
 
+//UNUSED
 #define X_RANGE 270
 #define Y_RANGE 90
 
+//Offsets and backlash compensations
+#define Y_OFFSET 170
+#define BACKLASH 5 //degrees of gear backlash
+
+
+
+//Matrix Parameters
+#define X_RES 27 // size of depth map is 3888 bits
+#define Y_RES 9
 #define SAMPLES 5
 #define MAXDIST 200
 
 
 //Global variable for depth map accesses
 short depthBaseline [Y_RES][X_RES];
-short depthNow [Y_RES][X_RES];
+short depthNow [Y_RES][X_RES]; 
 short processing [Y_RES - 2][X_RES - 2]; //Temporary matrix
-
 
 
 
@@ -54,13 +58,10 @@ void printMatrix(short matrix[Y_RES][X_RES]) {
 //Filtering functions
 
 void diffMatrix(short matrix1[Y_RES][X_RES], short matrix2 [Y_RES][X_RES]) { //In place matrix difference done on matrix 2
-
-
   for (int i = 0; i < Y_RES; i++) {
     for (int j = 0; j < X_RES; j++) {
       matrix2[i][j] -= matrix1[i][j];
     }
-
   }
 }
 
@@ -75,7 +76,6 @@ short median9 (short arr[9]) { //Bubble sort and return middle
         arr[i] = arr[i + 1];
         arr[i + 1] = temp;
       }
-
     }
   }
   return arr[4];
@@ -117,6 +117,56 @@ void medianFilter(short matrix[Y_RES][X_RES]) {//Applies median filter on matrix
 
   }
 }
+
+
+bool judgeMatrix(short matrix[Y_RES][X_RES]){//Returns true if human, else false
+  short colAccum[Y_RES-2];
+  char topRow = 0;
+  char botRow = 0;
+  
+  
+  for(short i = 1; i<Y_RES-1; i++){
+    colAccum[i-1] = 0;//Initializes colAccum array elements
+    
+    for(short j = 1; j<X_RES-1; j++){
+      if (matrix[i][j]<0){//Count less-than-zero pixels for every row and store in colAccum
+        colAccum[i-1] ++;        
+        }
+      }
+    if(colAccum[i-1]>4){//Write 1 if more than 4 pixels are true for that line, else write 0
+      colAccum[i-1] = 1;
+      }
+    else{
+      colAccum[i-1] = 0;
+      }
+    Serial.println(colAccum[i-1]);
+    }
+
+  for(char i = 0; i<Y_RES-2; i++){
+    if(colAccum[i]){
+      topRow = i;
+      break;
+      }
+    }
+   for(char i = Y_RES-2-1; i>=0; i--){
+
+    if(colAccum[i]){
+      botRow = i;
+      break;
+      }
+    } 
+
+   if(abs(botRow-topRow) > 3){
+    return true;
+    }
+   else{
+    return false; 
+    }
+  }
+
+//I2C communications handling code
+
+
 
 
 
@@ -280,39 +330,40 @@ class Scanner {
 
 
 
-          }
-
-
-
-
         }
 
 
-        //Return scanner back to its resting position facing back
-        goToPos(-45, 0);
-        scanner_homed = false;
+
 
       }
 
-    };
 
-
-    //Initialize new scanner
-    Scanner myScanner(STEPPER_P1, STEPPER_P2, STEPPER_P3, STEPPER_P4, STEPS_PER_ROT, STEPPER_SPD, SERVO_P1, LIM_SW1, SONIC_TRIG, SONIC_ECHO);
-
-    void setup() {
-      myScanner.goHome();
-      Serial.begin(9600);
-      myScanner.scanFaster(depthBaseline);//Populates a baseline image
-      delay(10000);
-      myScanner.scanFaster(depthNow);
-
-      diffMatrix(depthBaseline, depthNow);//Subtract baseline from depthNow
-      medianFilter(depthNow);//Make it look nice and pretty
-      printMatrix(depthNow);//printout
+      //Return scanner back to its resting position facing back
+      goToPos(-45, 0);
+      scanner_homed = false;
 
     }
 
-    void loop() {
+};
 
-    }
+
+//Initialize new scanner
+Scanner myScanner(STEPPER_P1, STEPPER_P2, STEPPER_P3, STEPPER_P4, STEPS_PER_ROT, STEPPER_SPD, SERVO_P1, LIM_SW1, SONIC_TRIG, SONIC_ECHO);
+
+void setup() {
+  myScanner.goHome();
+  Serial.begin(9600);
+  myScanner.scanFaster(depthBaseline);//Populates a baseline image
+  delay(10000);
+  myScanner.scanFaster(depthNow);
+
+  diffMatrix(depthBaseline, depthNow);//Subtract baseline from depthNow
+  medianFilter(depthNow);//Make it look nice and pretty
+  printMatrix(depthNow);//printout
+  Serial.print(judgeMatrix(depthNow));
+
+}
+
+void loop() {
+
+}
