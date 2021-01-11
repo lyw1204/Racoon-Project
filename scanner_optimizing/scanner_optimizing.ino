@@ -28,7 +28,7 @@
 #define X_RANGE 270
 #define Y_RANGE 90
 
-#define SAMPLES 3
+#define SAMPLES 5
 #define MAXDIST 200
 
 
@@ -136,10 +136,9 @@ class Scanner {
     NewPing *scanner = 0;
 
     short avgSensor(int runs) {
-      delay(50);
+      delay(50);//Wait out mechanical vibrations
       int result = scanner->convert_cm (scanner->ping_median(runs));
 
-      delay(50);
       if (result == 0) {
         return MAXDIST;
       }
@@ -269,50 +268,51 @@ class Scanner {
     void scanFaster (short matrix [Y_RES][X_RES]) {
       for (int j = 0; j < X_RES; j++) {
         for (int i = 0; i < Y_RES; i++) {
+          if (j % 2 == 0) {
+            goToPos(j * 10, Y_OFFSET - i * 10);
+            matrix[i][j] = avgSensor(SAMPLES);
 
-          goToPos(j * 10, Y_OFFSET - i * 10);
-          matrix[i][j] = avgSensor(SAMPLES);
+          }
+          else {
+            goToPos(j * 10, Y_OFFSET - (Y_RES - 1 - i) * 10);
+            matrix[Y_RES - 1 - i][j] = avgSensor(SAMPLES);
+          }
 
 
-          //      else{
-          //       goToPos(j*10, (Y_OFFSET-(Y_RES-1-i)*10));
-          //      matrix[i][Y_RES-1-j] = avgSensor(SAMPLES);
+
+          }
+
 
 
 
         }
 
 
-
+        //Return scanner back to its resting position facing back
+        goToPos(-45, 0);
+        scanner_homed = false;
 
       }
 
+    };
 
-      //Return scanner back to its resting position facing back
-      goToPos(-45, 0);
-      scanner_homed = false;
+
+    //Initialize new scanner
+    Scanner myScanner(STEPPER_P1, STEPPER_P2, STEPPER_P3, STEPPER_P4, STEPS_PER_ROT, STEPPER_SPD, SERVO_P1, LIM_SW1, SONIC_TRIG, SONIC_ECHO);
+
+    void setup() {
+      myScanner.goHome();
+      Serial.begin(9600);
+      myScanner.scanFaster(depthBaseline);//Populates a baseline image
+      delay(10000);
+      myScanner.scanFaster(depthNow);
+
+      diffMatrix(depthBaseline, depthNow);//Subtract baseline from depthNow
+      medianFilter(depthNow);//Make it look nice and pretty
+      printMatrix(depthNow);//printout
 
     }
 
-};
+    void loop() {
 
-
-//Initialize new scanner
-Scanner myScanner(STEPPER_P1, STEPPER_P2, STEPPER_P3, STEPPER_P4, STEPS_PER_ROT, STEPPER_SPD, SERVO_P1, LIM_SW1, SONIC_TRIG, SONIC_ECHO);
-
-void setup() {
-  myScanner.goHome();
-  Serial.begin(9600);
-  myScanner.scanFaster(depthBaseline);//Populates a baseline image
-  delay(10000);
-  myScanner.scanFaster(depthNow);
-
-  diffMatrix(depthBaseline, depthNow);//Subtract baseline from depthNow
-  medianFilter(depthNow);//Make it look nice and pretty
-  printMatrix(depthNow);//printout
-
-}
-
-void loop() {
-
-}
+    }
