@@ -16,6 +16,8 @@
 #define SONIC_TRIG 8
 #define SONIC_ECHO 9
 
+#define POWER_PIN 10 
+
 //Operation Constants
 #define STEPS_PER_ROT 2048
 #define STEPPER_SPD 7
@@ -177,7 +179,7 @@ class Scanner {
     bool scanner_en = false;
     bool scanner_homed = false;
 
-    byte stepPin1, stepPin2, stepPin3, stepPin4, stepperSpeed, servoPin, limSwPin, sonicTrigPin, sonicEchoPin;
+    byte stepPin1, stepPin2, stepPin3, stepPin4, stepperSpeed, servoPin, limSwPin, sonicTrigPin, sonicEchoPin, powerPin;
     int stepsPerRotation;
 
 
@@ -199,7 +201,7 @@ class Scanner {
 
 
   public:
-    Scanner(int step1, int step2, int step3, int step4, int stepRot, byte stepSpd, byte serv, byte limSw, byte sonicTrig, byte sonicEcho) {
+    Scanner(int step1, int step2, int step3, int step4, int stepRot, byte stepSpd, byte serv, byte limSw, byte sonicTrig, byte sonicEcho, byte power) {
       stepPin1 = step1;
       stepPin2 = step2;
       stepPin3 = step3;
@@ -210,6 +212,8 @@ class Scanner {
       limSwPin = limSw;
       sonicTrigPin = sonicTrig;
       sonicEchoPin = sonicEcho;
+
+      powerPin = power;
 
 
 
@@ -235,18 +239,22 @@ class Scanner {
       pinMode(sonicTrigPin, OUTPUT);
       pinMode(sonicEchoPin, INPUT);
 
+      pinMode(POWER_PIN, OUTPUT);
+
     }
 
     void powerOn() {
       //Connect power to stepper and servos
       scanner_en = true;
       servoY.attach(servoPin);
+      digitalWrite(powerPin, HIGH);
     }
 
     void powerOff() {
       //Disconnect powerto stepper and servos
       this->scanner_en = false;
       servoY.detach();
+      digitalWrite(powerPin,LOW);
     }
 
 
@@ -282,37 +290,6 @@ class Scanner {
       xPos = x;
       yPos = y;
     }
-    /*
-        void scan_alt(bool baseline) {//Back and forth scanning through area
-
-
-          for (int i = 0; i < Y_RES; i++) { //Y axis
-            for (int j = 0; j < X_RES; j++) { //X axis
-              if (i % 2 == 0) {//Even Lines
-                this->goToPos(j * 10, Y_OFFSET-i * 10);
-                if(baseline)
-                  depthBaseline[i][j]=avgSensor(SAMPLES);
-                else
-                  depthNow[i][j]=avgSensor(SAMPLES)-depthBaseline[i][j];
-
-              }
-              else {//Odd Lines
-                this->goToPos((X_RES-1 - j) * 10-BACKLASH, Y_OFFSET-i * 10);
-                if(baseline)
-                  depthBaseline[i][X_RES-1-j]=avgSensor(SAMPLES);
-                else
-                  depthNow[i][X_RES-1-j]=avgSensor(SAMPLES)-depthBaseline[i][X_RES-1-j];
-              }
-              delay(100);
-            }
-
-          }
-          //Return scanner back to its resting position facing back
-          goToPos(-45,0);
-          scanner_homed = false;
-
-        }
-    */
 
 
     void scanFaster (short matrix [Y_RES][X_RES]) {
@@ -348,7 +325,7 @@ class Scanner {
 
 
 //Initialize new scanner
-Scanner myScanner(STEPPER_P1, STEPPER_P2, STEPPER_P3, STEPPER_P4, STEPS_PER_ROT, STEPPER_SPD, SERVO_P1, LIM_SW1, SONIC_TRIG, SONIC_ECHO);
+Scanner myScanner(STEPPER_P1, STEPPER_P2, STEPPER_P3, STEPPER_P4, STEPS_PER_ROT, STEPPER_SPD, SERVO_P1, LIM_SW1, SONIC_TRIG, SONIC_ECHO, POWER_PIN);
 
 void setup() {
   myScanner.goHome();
@@ -361,6 +338,7 @@ void setup() {
   medianFilter(depthNow);//Make it look nice and pretty
   printMatrix(depthNow);//printout
   Serial.print(judgeMatrix(depthNow));
+  digitalWrite(POWER_PIN, LOW);
 
 }
 
