@@ -1,6 +1,10 @@
 #define SCL D1
 #define SDA D2
-#define IO_LED D7
+
+#define PIR_L D5
+#define PIR_R D6
+
+#define SPEAKER D8
 
 #define MASTER_ADDR 1
 #define SLAVE_ADDR 8
@@ -8,64 +12,159 @@
 #include <Wire.h>
 
 
+
+//I2C communication
 class Slave {
   private:
     uint8_t _address;
     uint8_t _rxBuffer;
     uint8_t _txBuffer;
-    uint8_t _state;
-
-
-
-
-
-
-  public:
-    Slave(unsigned short address) {
-      _address = address;
-
-    }
+    byte _healthState;
 
     bool transmit(byte command) {
-      digitalWrite(IO_LED, HIGH);
       Wire.beginTransmission(_address);
       Wire.write(command);
       Wire.endTransmission();
       _txBuffer = command;
-      digitalWrite(IO_LED, LOW);
     }
 
-    bool requestSlave() {
+    byte requestSlave() {
       Wire.requestFrom(_address, sizeof(byte));
+      byte rx;
       while (Wire.available()) {
-        _rxBuffer = Wire.read();
-        Serial.println(_rxBuffer);
+        rx = Wire.read();
+      }
+      return rx;
+    }
+  public:
+    Slave(unsigned short address) {
+      _address = address;
+    }
+
+    bool getBaseline() {
+      Serial.println("getting baseline now");
+
+      transmit(1);
+      delay(50000);//Wait 50s for scan to complete, should change to nonblocking in future
+      byte result = requestSlave();
+      if (result == 0) {
+        return true;
+      }
+      else {
+        return false;
+      }
+    }
+    bool getDepthNow() {
+      Serial.println("Scanning now");
+      transmit(2); //Tell arduino to scanNow over I2C
+      delay(50000);//Wait 50s for scan to complete, should change to nonblocking in future
+      byte result = requestSlave();
+      if (result == 1) {
+        return true;
+      }
+      else {
+        return false;
       }
     }
 
-    bool scanBaseline() {
-      //Write command for baseline scan
-      //Wait 30s
-      //Request 1 byte
-      //if not good, wait 1s and re-request
+    void alarm() {
+      transmit(3);
+      delay(5000);
+      requestSlave();
 
     }
+
+
+    void selfTest() {
+      transmit(4);
+      delay(500);
+      _healthState = requestSlave();
+      //_healthState = 0b00001111;
+      Serial.print("Health Test:");
+      Serial.println(_healthState);
+
+      if (_healthState != 0b00000000) {
+        while (true) {
+          errorTones();
+        }
+
+      }
+    }
+
+    void errorTones() {
+      byte tempHealth = _healthState;
+      byte mask = 0b00000001;
+
+      for (int i = 0; i < 8; i++) {
+        if (tempHealth & mask) { //rightmost bit HIGH
+          tone(SPEAKER, 2000);
+
+        }
+        else { //rightmost bit low
+          tone(SPEAKER, 700);
+        }
+        delay(500);
+        noTone(SPEAKER);
+        delay(500);
+        tempHealth >>= 1; //shift health bit left
+      }
+
+      delay(2000);
+    }
+
 };
+
 Slave scanner (SLAVE_ADDR);
 
+
+//PIR Interrupt Handling
+void PIR_handler() {
+  Serial.println("PIR TRIGGERED!");
+
+
+}
+
+class PIR {
+  private:
+    byte _pin;
+    bool _pirState = LOW;
+
+  public:
+    PIR(byte PIN) {
+      _pin = PIN;
+      pinMode(_pin, INPUT);
+
+    }
+
+    void enable() {
+      attachInterrupt(digitalPinToInterrupt(_pin), PIR_handler, RISING);
+    }
+
+    void disable() {
+      detachInterrupt(digitalPinToInterrupt(_pin));
+    }
+
+
+};
+
+PIR pir1 = (PIR_L);//Left PIR Initialized
+
+
+
+
 void setup() {
-  Wire.begin(MASTER_ADDR);        // join i2c bus (address optional for master)
+  delay(1500);
+  Wire.begin(MASTER_ADDR); // join i2c bus (address optional for master)
   Serial.begin(9600);  // start serial for output
+  scanner.selfTest();
+
+  scanner.getBaseline();
+  pir1.enable();//PIR Interrupt starts working
+
 }
 
 void loop() {
-  scanner.transmit(0b00000001);
-  delay(20000);
-  scanner.requestSlave();
-  delay(100);
-  scanner.transmit(0b00000010);
-  delay(20000);
-  scanner.requestSlave();
-  delay(100);
+  Serial.println(scanner.getDepthNow());
+  delay(10000);
 
 }

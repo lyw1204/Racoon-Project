@@ -378,7 +378,7 @@ void slaveExecute(){
 
     case 4: //self, test, return 
       Serial.println("SELF-TEST DUMMY PROGRAM");
-      txBuffer.push(0b00000011); //Fake test failure here, just for fun
+      txBuffer.push(0b00000000); //Fake test for now
       
       break;
 
