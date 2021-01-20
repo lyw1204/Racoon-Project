@@ -400,8 +400,8 @@ void slaveExecute(){
 
 void setup() {
   Serial.begin(9600);
-  rxBuffer.push(1);
-  rxBuffer.push(2);
+  slaveBegin();
+
 }
 
 void loop() {
