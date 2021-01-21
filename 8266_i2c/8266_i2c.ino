@@ -1,3 +1,11 @@
+#include <common.h>
+#include <FirebaseFS.h>
+#include <Firebase_ESP_Client.h>
+#include <Utils.h>
+
+#include <ESP8266WiFi.h> 
+#include <Wire.h>
+
 #define SCL D1
 #define SDA D2
 
@@ -9,7 +17,12 @@
 #define MASTER_ADDR 1
 #define SLAVE_ADDR 8
 
-#include <Wire.h>
+#define FIREBASE_HOST "https://raccoonlock-default-rtdb.firebaseio.com/" //Without http:// or https:// schemes
+#define FIREBASE_AUTH "YOUR_FIREBASE_DATABASE_SECRET"
+#define WIFI_SSID "DAVID NEW"
+#define WIFI_PASSWORD "c=3.00*10^8m/s"
+
+
 
 
 
@@ -113,7 +126,6 @@ class Slave {
     }
 
 };
-
 Slave scanner (SLAVE_ADDR);
 
 
@@ -150,7 +162,32 @@ class PIR {
 PIR pir1 = (PIR_L);//Left PIR Initialized
 
 
+//WIFI and DB section
 
+char ssid [32];
+char password [63];
+FirebaseData fbdo;
+FirebaseAuth auth;
+FirebaseConfig config; 
+
+void wifiConnect()
+{
+  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);             // Connect to the network
+  Serial.print("Connecting to ");
+  Serial.print(WIFI_SSID); Serial.println(" ...");
+
+  int teller = 0;
+  while (WiFi.status() != WL_CONNECTED)
+  {                                       // Wait for the Wi-Fi to connect
+    delay(1000);
+    Serial.print(++teller); Serial.print(' ');
+  }
+
+  Serial.println('\n');
+  Serial.println("Connection established!");
+  Serial.print("IP address:\t");
+  Serial.println(WiFi.localIP());         // Send the IP address of the ESP8266 to the computer
+}
 
 void setup() {
   delay(1500);
