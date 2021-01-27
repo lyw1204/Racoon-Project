@@ -1,8 +1,7 @@
 //PIR Interrupt Handling
 void PIR_handler() {
   Serial.println("PIR TRIGGERED!");
-
-
+  execStack.push(2);//Adds an scanNow event into execStack upon interrupt by PIR
 }
 
 class PIR {
@@ -24,6 +23,4 @@ class PIR {
     void disable() {
       detachInterrupt(digitalPinToInterrupt(_pin));
     }
-
-
 };

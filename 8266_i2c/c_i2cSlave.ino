@@ -1,4 +1,36 @@
 //I2C communication
+class Stack{//implements cyclic buffer for tx and rx
+  private:
+    int _size;
+    byte * _stack;
+    byte _top = 0;
+    byte _bottom = 0;
+    
+  public:
+    Stack(int SIZE){
+      _size = SIZE;
+      _stack = new byte [_size];
+      }
+
+    void push(byte val){
+      _stack [_top] = val;
+      _top ++;
+      _top = _top % _size;     
+      }
+
+    byte pop(){
+      byte retVal = _stack[_bottom];
+      _bottom++;
+      _bottom = _bottom % _size;
+      return retVal;
+      }
+
+    bool isEmpty(){
+      return(_bottom == _top); 
+      }
+  };
+Stack execStack(64);
+
 class Slave {
   private:
     uint8_t _address;
@@ -98,3 +130,6 @@ class Slave {
     }
 
 };
+
+
+Slave scanner (SLAVE_ADDR);
