@@ -31,13 +31,17 @@ class Stack{//implements cyclic buffer for tx and rx
   };
 Stack execStack(64);
 
+
+
+
+bool pirFlag = false;
+
 class Slave {
   private:
     uint8_t _address;
     uint8_t _rxBuffer;
     uint8_t _txBuffer;
     byte _healthState;
-
     bool transmit(byte command) {
       Wire.beginTransmission(_address);
       Wire.write(command);
@@ -53,44 +57,40 @@ class Slave {
       }
       return rx;
     }
+    
   public:
     Slave(unsigned short address) {
       _address = address;
     }
 
-    bool getBaseline() {
+    void getBaseline() {
       Serial.println("getting baseline now");
 
       transmit(1);
-      delay(50000);//Wait 50s for scan to complete, should change to nonblocking in future
-      byte result = requestSlave();
-      if (result == 0) {
-        return true;
-      }
-      else {
-        return false;
-      }
+      delay(60000);//Wait for scan to complete, should change to nonblocking in future
+      requestSlave();
+      Serial.println("Baseline complete");
     }
     bool getDepthNow() {
       Serial.println("Scanning now");
       transmit(2); //Tell arduino to scanNow over I2C
-      delay(50000);//Wait 50s for scan to complete, should change to nonblocking in future
+      delay(60000);//Wait for scan to complete, should change to nonblocking in future
       byte result = requestSlave();
-      if (result == 1) {
+      if (result) {//is human
         return true;
       }
-      else {
+      else { //is racoon
         return false;
       }
     }
 
     void alarm() {
       transmit(3);
+      Serial.println("Alarm Triggered! You are not a human. ");
       delay(5000);
       requestSlave();
 
     }
-
 
     void selfTest() {
       transmit(4);
@@ -107,15 +107,13 @@ class Slave {
 
       }
     }
-
     void errorTones() {
       byte tempHealth = _healthState;
       byte mask = 0b00000001;
 
       for (int i = 0; i < 8; i++) {
         if (tempHealth & mask) { //rightmost bit HIGH
-          tone(SPEAKER, 2000);
-
+          tone(SPEAKER, 2500);
         }
         else { //rightmost bit low
           tone(SPEAKER, 700);
@@ -129,6 +127,11 @@ class Slave {
       delay(2000);
     }
 
+  void bufferFlush(){
+    transmit(5);
+    Serial.println("Slave buffer flushed");
+    //requestSlave();
+    }
 };
 
 
