@@ -39,9 +39,10 @@ bool pirFlag = false;
 class Slave {
   private:
     uint8_t _address;
-    uint8_t _rxBuffer;
-    uint8_t _txBuffer;
-    byte _healthState;
+    uint8_t _latestState;
+    bool _homed; 
+    uint8_t _healthState; 
+    
     bool transmit(byte command) {
       Wire.beginTransmission(_address);
       Wire.write(command);
@@ -49,7 +50,7 @@ class Slave {
       _txBuffer = command;
     }
 
-    byte requestSlave() {
+    boolean requestSlave() {
       Wire.requestFrom(_address, sizeof(byte));
       byte rx;
       while (Wire.available()) {
@@ -57,24 +58,61 @@ class Slave {
       }
       return rx;
     }
+
+    void updateState(){
+      _latestState = requestSlave();
+      _homed = (_latestState && 0b00010000 == 0b00010000);
+      }
+    
+    void waitComm(){//Blocks execution until slave is in standby, or times out after 100s
+      for(int i = 0; i<100; i++)
+      {
+        transmit(0b10000000);//Fetch state command
+        _latestState = reuqestSlave();
+        
+        if(_latestState && 0b11100000 == 0b00000000){
+          return true;
+          }
+        delay(1000);
+      }
+      //Slave timed out, comms has failed
+    return false; 
+    }
     
   public:
     Slave(unsigned short address) {
       _address = address;
     }
 
+    void homeScanner() {
+      Serial.println("waiting for slave");
+      waitComm();//Waiting until slave is in standby
+      Serial.println("Homing scanner");
+      transmit(0b01000000);//transmit code to do home
+      
+      }
+    
     void getBaseline() {
-      Serial.println("getting baseline now");
-
-      transmit(1);
-      delay(60000);//Wait for scan to complete, should change to nonblocking in future
-      requestSlave();
-      Serial.println("Baseline complete");
+      Serial.println("Waiting for slave");
+      waitComm();//Waiting until slave is in standby
+      
+      if(!_homed){//Scanner is NOT homed
+        homeScanner();
+        }
+        
+      serial.println("Scanning baseline");
+      transmit(0b00100000);//transmit code to do baseline
     }
+    
     bool getDepthNow() {
+      waitComm();//wait until scanner in standby state
+      if(!_homed){//Scanner is NOT homed
+        homeScanner();
+        }
       Serial.println("Scanning now");
-      transmit(2); //Tell arduino to scanNow over I2C
-      delay(60000);//Wait for scan to complete, should change to nonblocking in future
+      transmit(0b00110000);//do scanNow
+      waitComm();
+      transmit(0b10110000);//fetch scanNow result
       byte result = requestSlave();
       if (result) {//is human
         return true;
@@ -85,28 +123,28 @@ class Slave {
     }
 
     void alarm() {
-      transmit(3);
+      waitComm();
       Serial.println("Alarm Triggered! You are not a human. ");
-      delay(5000);
-      requestSlave();
+      transmit(0b01010000);//Do deter
+      waitComm();
+      transmit(0b11010000);//Load unused deter data
+      byte _unusedDeter = requestSlave();//Tells use which one of 3 deterrence is not used
 
+      //Upload alarm record here
     }
 
     void selfTest() {
-      transmit(4);
-      delay(500);
+      waitComm();
+      transmit(0b00010000);//Do selftest
+      waitComm();
       _healthState = requestSlave();
-      //_healthState = 0b00001111;
-      Serial.print("Health Test:");
-      Serial.println(_healthState);
-
       if (_healthState != 0b00000000) {
         while (true) {
           errorTones();
         }
-
       }
     }
+    
     void errorTones() {
       byte tempHealth = _healthState;
       byte mask = 0b00000001;
@@ -123,14 +161,15 @@ class Slave {
         delay(500);
         tempHealth >>= 1; //shift health bit left
       }
-
       delay(2000);
     }
 
-  void bufferFlush(){
-    transmit(5);
-    Serial.println("Slave buffer flushed");
-    //requestSlave();
+  void bufferFlush(){//Emergency stop for scanner
+    //Do transmit immediately
+    transmit(0b01110000);
+    delay(1000);
+    updateState();
+    Serial.println("Emergency stop executed");
     }
 };
 
