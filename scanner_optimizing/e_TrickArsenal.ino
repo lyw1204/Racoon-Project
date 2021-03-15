@@ -3,6 +3,8 @@ class TrickArsenal{
     byte _pin1;
     byte _pin2;
     byte _pin3;
+
+    byte unusedDeter = 0;
   public:
     TrickArsenal(byte dPIN1, byte dPIN2, byte dPIN3){
       _pin1 = dPIN1;
@@ -14,9 +16,9 @@ class TrickArsenal{
       pinMode(_pin3, OUTPUT);
       }
     void deploy(){
-      int noTrigger = random(0,2);
+      unusedDeter = random(0,2);
       
-      switch(noTrigger){//toggle outputs randomly for 1s
+      switch(unusedDeter){//toggle outputs randomly for 1s
         case 0:
           digitalWrite(_pin2, HIGH);
           digitalWrite(_pin3, HIGH);
@@ -42,6 +44,9 @@ class TrickArsenal{
           break;
 
         }
+      }
+    byte getUnusedDeter(){
+      return unusedDeter;
       }
 
   };

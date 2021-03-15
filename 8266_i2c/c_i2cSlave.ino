@@ -51,6 +51,7 @@ class Slave {
     }
 
     boolean requestSlave() {
+      delay(50);//Overhead time for arduino to fetch data into buffer
       Wire.requestFrom(_address, sizeof(byte));
       byte rx;
       while (Wire.available()) {
@@ -60,8 +61,9 @@ class Slave {
     }
 
     void updateState(){
-      _latestState = requestSlave();
-      _homed = (_latestState && 0b00010000 == 0b00010000);
+      byte result = requestSlave();
+      _latestState = result>>5;
+      _homed = ((result>>4)&&0b00000001);
       }
     
     void waitComm(){//Blocks execution until slave is in standby, or times out after 100s
@@ -70,7 +72,7 @@ class Slave {
         transmit(0b10000000);//Fetch state command
         _latestState = reuqestSlave();
         
-        if(_latestState && 0b11100000 == 0b00000000){
+        if(_latestState  == 0b00000000){
           return true;
           }
         delay(1000);
@@ -85,28 +87,35 @@ class Slave {
     }
 
     void homeScanner() {
-      Serial.println("waiting for slave");
-      waitComm();//Waiting until slave is in standby
-      Serial.println("Homing scanner");
-      transmit(0b01000000);//transmit code to do home
-      
+      updateState();
+      if(_homed){
+        return;
+        }
+      else:{
+       waitComm();//Waiting until slave is in standby
+        Serial.println("Homing scanner");
+       transmit(0b01000000);//transmit code to do home       
+        }
       }
     
-    void getBaseline() {
+    void getBaseline() {//scans baseline, and homes scanner when complete
       Serial.println("Waiting for slave");
       waitComm();//Waiting until slave is in standby
       
-      if(!_homed){//Scanner is NOT homed
+      if(!_homed){//Scanner is NOT homed at beginning
         homeScanner();
         }
         
       serial.println("Scanning baseline");
       transmit(0b00100000);//transmit code to do baseline
+
+      waitComm();
+      homeScanner();
     }
     
-    bool getDepthNow() {
+    bool getDepthNow() {//Scans now, does NOT home when complete
       waitComm();//wait until scanner in standby state
-      if(!_homed){//Scanner is NOT homed
+      if(!_homed){//Scanner is NOT homed at beginning
         homeScanner();
         }
       Serial.println("Scanning now");
@@ -121,6 +130,7 @@ class Slave {
         return false;
       }
     }
+
 
     void alarm() {
       waitComm();

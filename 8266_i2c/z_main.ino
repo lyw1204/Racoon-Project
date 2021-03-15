@@ -30,12 +30,13 @@ void loop() {
     if(!isHuman){
       scanner.alarm();
       Serial.println("ANIMAL");
-      tempAlarm();
+      //tempAlarm();
     }
-
     else{
       Serial.println("HUMAN");
       }
+
+    scanner.homeScanner();
     firebaseEventPush(isHuman);
     pirFlag = false; 
     }

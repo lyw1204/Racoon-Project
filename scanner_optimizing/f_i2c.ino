@@ -35,70 +35,90 @@ class Buffer{//implements cyclic buffer for tx and rx
       }
   };
 
+
+Buffer txBuffer(BUFFER_SIZE);
+Buffer rxBuffer(BUFFER_SIZE);
+byte slaveState =0b00000000;
+byte cmd = 0b00000000; //Incoming commands from master
+byte selfTest = 0b00000000;
+bool latestResult = true; 
+byte unusedDeter = 0;
+
 void slaveBegin(){
+  
   Wire.begin(SLAVE_ADDR);
   Wire.onReceive(receiveEvent);
   Wire.onRequest(requestEvent);
   }
 
-
-Buffer txBuffer(BUFFER_SIZE);
-Buffer rxBuffer(BUFFER_SIZE);
-
 void requestEvent(){
-  //Pop txBuffer and write onto I2C
-  Wire.write(txBuffer.pop());
+  //write onto I2C
+  Wire.write(slaveState);
   }
 
 void receiveEvent(){
-  rxBuffer.push(Wire.read());
+  cmd = Wire.read();
   }
 
 void slaveExecute(){
-  byte cmd = rxBuffer.pop();//pop a commannd from rxBuffer
-  
+  cmd = cmd >> 4;
   switch (cmd){//Interprets different commands and do different things
-    case 0: //scanner home
-      myScanner.goHome();
-      txBuffer.push(0);
+    case 0b0000:// RSV No command this cycle
       break;
-
-    case 1: //scan baseline, return 0
+      
+    case 0b0001: //self, test
+      Serial.println("SELF-TEST DUMMY PROGRAM");
+      slaveState = 00100000;
+      selfTest = 0b00000000; //Fake test for now
+      slaveState = 0b00000000;
+      break;
+    case 0b0010: //scan baseline
+      slaveState = 0b01000000;//Scanning baseline
       myScanner.scanFaster(depthBaseline);
-      txBuffer.push(0);
+      slaveState = 0b00010000;
       break;
 
-    case 2: //scan now, return judgement 1 = human, 0 = raccoon
+    case 0b0011: //scanNow
+      slaveState = 0b01100000;
       myScanner.scanFaster(depthNow);
       diffMatrix(depthBaseline, depthNow);//Subtract baseline from depthNow
       medianFilter(depthNow);
-      printMatrix(depthNow);
-      txBuffer.push(judgeMatrix(depthNow));
-      break;
-
-    case 3: //random alarm, return 0
-      Serial.println("ALARM!");
-      ta1.deploy();
-      txBuffer.push(0);
-      break;
-
-    case 4: //self, test, return 
-      Serial.println("SELF-TEST DUMMY PROGRAM");
-      txBuffer.push(0b00000000); //Fake test for now
+      //printMatrix(depthNow);
       
+      latestResult = (judgeMatrix(depthNow));//Store result for reading
+      slaveState = 0b00000000;
+      break;
+      
+    case 0b0100: //scanner home
+      slaveState = 0b10000000;//State is now homing..
+      myScanner.goHome();
+      slaveState = 0b00010000;//Standby, homed
+      break;
+      
+    case 0b0101: //random alarm
+      Serial.println("ALARM!");
+      slaveState = 0b10100000;
+      ta1.deploy();
+      slaveState = slaveState || 0b00011111; //Resets to standby state, unaffected
       break;
 
-    case 5: //Buffer Flush
-      txBuffer.bufferFlush();
+    case 0b1000: //Fetch slaveState, meaning do nothing
       break;
 
-    case 6: //reserved
-      txBuffer.push(0);
+    case 0b1001://Fetch selfTest data
+      slaveState = selfTest;
       break;
 
-    default://Do nothing
-      txBuffer.push(0b11111111);//0b11111111 indicates trransmission failure to 8266, host should retransmit
+    case 0b1011://Fetch latestResult data
+      slaveState = latestResult;
       break;
 
+    case 0b1101://Fetch unusedDeter data
+      slaveState = ta1.getUnusedDeter();
+      break;
+
+    default: //Do nothing
+      break;
     }
+    cmd = 0;//Clears cmd after executing
   }
