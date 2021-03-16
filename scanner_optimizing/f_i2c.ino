@@ -44,6 +44,7 @@ byte selfTest = 0b00000000;
 bool latestResult = true; 
 byte unusedDeter = 0;
 
+
 void slaveBegin(){
   
   Wire.begin(SLAVE_ADDR);
@@ -60,18 +61,21 @@ void receiveEvent(){
   cmd = Wire.read();
   }
 
+
 void slaveExecute(){
   cmd = cmd >> 4;
   switch (cmd){//Interprets different commands and do different things
     case 0b0000:// RSV No command this cycle
+      slaveState = 0b11111111;
       break;
       
     case 0b0001: //self, test
       Serial.println("SELF-TEST DUMMY PROGRAM");
-      slaveState = 00100000;
+      slaveState = 0b00100000;
       selfTest = 0b00000000; //Fake test for now
       slaveState = 0b00000000;
       break;
+    
     case 0b0010: //scan baseline
       slaveState = 0b01000000;//Scanning baseline
       myScanner.scanFaster(depthBaseline);
@@ -120,5 +124,10 @@ void slaveExecute(){
     default: //Do nothing
       break;
     }
+  
+    Serial.println("cmd");
+    Serial.println(cmd);
+    Serial.println("slavestate");
+    Serial.println(slaveState);
     cmd = 0;//Clears cmd after executing
   }

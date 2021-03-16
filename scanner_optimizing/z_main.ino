@@ -6,7 +6,7 @@ void setup() {
 }
 
 void loop() {
-  while(!rxBuffer.isEmpty()){
+  while(true){
     slaveExecute();    
     }
 }

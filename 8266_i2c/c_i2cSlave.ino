@@ -47,7 +47,6 @@ class Slave {
       Wire.beginTransmission(_address);
       Wire.write(command);
       Wire.endTransmission();
-      _txBuffer = command;
     }
 
     boolean requestSlave() {
@@ -66,13 +65,13 @@ class Slave {
       _homed = ((result>>4)&&0b00000001);
       }
     
-    void waitComm(){//Blocks execution until slave is in standby, or times out after 100s
+    bool waitComm(){//Blocks execution until slave is in standby, or times out after 100s
       for(int i = 0; i<100; i++)
       {
         transmit(0b10000000);//Fetch state command
-        _latestState = reuqestSlave();
+        _latestState = requestSlave();
         
-        if(_latestState  == 0b00000000){
+        if(_latestState>>5== 0b00000000){
           return true;
           }
         delay(1000);
@@ -91,7 +90,7 @@ class Slave {
       if(_homed){
         return;
         }
-      else:{
+      else {
        waitComm();//Waiting until slave is in standby
         Serial.println("Homing scanner");
        transmit(0b01000000);//transmit code to do home       
@@ -106,7 +105,7 @@ class Slave {
         homeScanner();
         }
         
-      serial.println("Scanning baseline");
+      Serial.println("Scanning baseline");
       transmit(0b00100000);//transmit code to do baseline
 
       waitComm();
