@@ -66,7 +66,7 @@ void slaveExecute(){
   cmd = cmd >> 4;
   switch (cmd){//Interprets different commands and do different things
     case 0b0000:// RSV No command this cycle
-      slaveState = 0b11111111;
+      delay(500);
       break;
       
     case 0b0001: //self, test
@@ -122,6 +122,7 @@ void slaveExecute(){
       break;
 
     default: //Do nothing
+      delay(500);
       break;
     }
   
