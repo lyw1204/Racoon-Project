@@ -21,7 +21,6 @@ void loop() {
     else{
       Serial.println("HUMAN");
       }
-
     scanner.homeScanner();
     firebaseEventPush(isHuman);
     pirFlag = false; 
