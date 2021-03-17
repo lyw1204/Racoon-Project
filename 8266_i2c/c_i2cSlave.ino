@@ -43,14 +43,13 @@ class Slave {
     bool _homed; 
     uint8_t _healthState; 
     
-    bool transmit(byte command) {
+    void transmit(byte command) {
       Wire.beginTransmission(_address);
       Wire.write(command);
       Wire.endTransmission();
     }
 
-    boolean requestSlave() {
-      delay(50);//Overhead time for arduino to fetch data into buffer
+    byte requestSlave() {
       Wire.requestFrom(_address, sizeof(byte));
       byte rx;
       while (Wire.available()) {
@@ -69,7 +68,7 @@ class Slave {
       for(int i = 0; i<100; i++)
       {
         transmit(0b10000000);//Fetch state command
-        _latestState = requestSlave();
+        updateState();
         
         if(_latestState>>5== 0b00000000){
           return true;
@@ -92,7 +91,7 @@ class Slave {
         }
       else {
        waitComm();//Waiting until slave is in standby
-        Serial.println("Homing scanner");
+       Serial.println("Homing scanner");
        transmit(0b01000000);//transmit code to do home       
         }
       }
@@ -107,7 +106,6 @@ class Slave {
         
       Serial.println("Scanning baseline");
       transmit(0b00100000);//transmit code to do baseline
-
       waitComm();
       homeScanner();
     }
