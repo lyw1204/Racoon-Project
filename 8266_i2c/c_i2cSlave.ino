@@ -180,11 +180,11 @@ class Slave {
       transmit(0b01110000);
       delay(1000);
       updateState();
-      if (slaveState == 0b11100000) {
+      if (_latestState == 0b11100000) {
         Serial.println("Emergency stop executed");
       }
       else {
-        Serial.println("Emergency stop did not respond")
+        Serial.println("Emergency stop did not respond");
       }
     }
 };
