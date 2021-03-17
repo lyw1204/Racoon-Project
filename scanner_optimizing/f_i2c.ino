@@ -63,10 +63,15 @@ void receiveEvent(){
 
 
 void slaveExecute(){
+   Serial.println("cmd");
+   Serial.println(cmd);
+   Serial.println("slavestate");
+   Serial.println(slaveState);
+   
   cmd = cmd >> 4;
   switch (cmd){//Interprets different commands and do different things
     case 0b0000:// RSV No command this cycle
-      delay(500);
+      slaveState = 0b00000000;
       break;
       
     case 0b0001: //self, test
@@ -122,13 +127,8 @@ void slaveExecute(){
       break;
 
     default: //Do nothing
-      delay(500);
       break;
     }
   
-    Serial.println("cmd");
-    Serial.println(cmd);
-    Serial.println("slavestate");
-    Serial.println(slaveState);
-    cmd = 0;//Clears cmd after executing
+    //cmd = 0;//Clears cmd after executing
   }
