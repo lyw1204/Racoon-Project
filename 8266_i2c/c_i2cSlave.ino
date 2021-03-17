@@ -65,10 +65,12 @@ class Slave {
     }
 
     bool waitComm() { //Blocks execution until slave is in standby, or times out after 100s
+      delay(100);//Give arduino time to update its state
       for (int i = 0; i < 100; i++)
       {
         transmit(0b10000000);//Fetch state command
         updateState();
+        transmit(0b11110000);//Reset
 
         if (_latestState >> 5 == 0b00000000) {
           return true;
@@ -76,6 +78,10 @@ class Slave {
         delay(1000);
       }
       //Slave timed out, comms has failed
+      Serial.print("TIMED OUT, EXECUTION HALTED");
+      while(true){
+        
+        }
       return false;
     }
 
@@ -92,12 +98,14 @@ class Slave {
       transmit(0b00010000);//Do selftest
       waitComm();
       transmit(0b10010000);//Fetch test result
-      _healthState = requestSlave();
+      updateState();
+      _healthState = _latestState;
       if (_healthState != 0b00000000) {
         while (true) {
           errorTones(_healthState);
         }
       }
+      transmit(0b11110000);//Reset to standby
     }
 
     void errorTones(byte tempHealth) {
@@ -151,7 +159,8 @@ class Slave {
       transmit(0b00110000);//do scanNow
       waitComm();
       transmit(0b10110000);//fetch scanNow result
-      byte result = requestSlave();
+      updateState();
+      byte result = _latestState;
       transmit(0b11110000);//reset slaveState to standby
       if (result) {//is human
         return true;
@@ -168,7 +177,8 @@ class Slave {
       transmit(0b01010000);//Do deter
       waitComm();
       transmit(0b11010000);//Load unused deter data
-      byte _unusedDeter = requestSlave();//Tells use which one of 3 deterrence is not used
+      updateState();
+      byte _unusedDeter = _latestState;//Tells use which one of 3 deterrence is not used
       transmit(0b11110000);//Rest slaveState to standby
       //Upload alarm record here
     }
