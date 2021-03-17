@@ -82,8 +82,40 @@ class Slave {
   public:
     Slave(unsigned short address) {
       _address = address;
+      _latestState = 0b11111111; //Uninitialized
+      _homed = false;
+      _healthState = 0b00000000;//Default no fault
     }
-
+    
+    void selfTest() {
+      waitComm();
+      transmit(0b00010000);//Do selftest
+      waitComm();
+      transmit(0b10010000);//Fetch test result
+      _healthState = requestSlave();
+      if (_healthState != 0b00000000) {
+        while (true) {
+          errorTones(_healthState);
+        }
+      }
+    }
+    
+    void errorTones(byte tempHealth) {
+      byte mask = 0b00000001;
+      for (int i = 0; i < 8; i++) {
+        if (tempHealth & mask) { //rightmost bit HIGH
+          tone(SPEAKER, 2500);
+        }
+        else { //rightmost bit low
+          tone(SPEAKER, 700);
+        }
+        delay(500);
+        noTone(SPEAKER);
+        delay(500);
+        tempHealth >>= 1; //shift health bit left
+      }
+      delay(2000);
+    }
     void homeScanner() {
       updateState();
       if(_homed){
@@ -140,36 +172,7 @@ class Slave {
       //Upload alarm record here
     }
 
-    void selfTest() {
-      waitComm();
-      transmit(0b00010000);//Do selftest
-      waitComm();
-      _healthState = requestSlave();
-      if (_healthState != 0b00000000) {
-        while (true) {
-          errorTones();
-        }
-      }
-    }
-    
-    void errorTones() {
-      byte tempHealth = _healthState;
-      byte mask = 0b00000001;
 
-      for (int i = 0; i < 8; i++) {
-        if (tempHealth & mask) { //rightmost bit HIGH
-          tone(SPEAKER, 2500);
-        }
-        else { //rightmost bit low
-          tone(SPEAKER, 700);
-        }
-        delay(500);
-        noTone(SPEAKER);
-        delay(500);
-        tempHealth >>= 1; //shift health bit left
-      }
-      delay(2000);
-    }
 
   void bufferFlush(){//Emergency stop for scanner
     //Do transmit immediately
