@@ -66,16 +66,18 @@ class Slave {
     }
 
     bool waitComm() { //Blocks execution until slave is in standby, or times out after 100s
-      delay(100);//Give arduino time to update its state
+      delay(1000);//Give arduino time to update its state
       for (int i = 0; i < 100; i++)
       {
         transmit(0b10000000);//Fetch state command
+        delay(500);
         updateState();
         transmit(0b11110000);//Reset
 
         if (_latestState >> 5 == 0b00000000) {
           return true;
         }
+        Serial.println("Scanner busy, execution blocked by 1s.");
         delay(1000);
       }
       //Slave timed out, comms has failed
@@ -172,7 +174,6 @@ class Slave {
       }
     }
 
-
     void alarm() {
       waitComm();
       Serial.println("Alarm Triggered! You are not a human. ");
@@ -184,7 +185,6 @@ class Slave {
       transmit(0b11110000);//Rest slaveState to standby
       //Upload alarm record here
     }
-
 
 
     void eStop() { //Emergency stop for scanner
