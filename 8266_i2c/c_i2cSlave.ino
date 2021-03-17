@@ -60,6 +60,7 @@ class Slave {
 
     void updateState() {
       byte result = requestSlave();
+      Serial.printf("State updated: %d \n", result);
       _latestState = result >> 5;
       _homed = ((result >> 4) && 0b00000001);
     }
@@ -94,6 +95,7 @@ class Slave {
     }
 
     void selfTest() {
+      transmit(0b11110000);
       waitComm();
       transmit(0b00010000);//Do selftest
       waitComm();
