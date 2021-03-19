@@ -72,9 +72,9 @@ class Slave {
         transmit(0b10000000);//Fetch state command
         delay(500);
         updateState();
-        transmit(0b11110000);//Reset
-
-        if (_latestState >> 5 == 0b00000000) {
+        
+        if ((_latestState && 0b11100000) == 0b00000000) {
+          Serial.println("scanner is freee");
           return true;
         }
         Serial.println("Scanner busy, execution blocked by 1s.");
@@ -98,7 +98,6 @@ class Slave {
 
     void selfTest() {
       transmit(0b11110000);
-      waitComm();
       transmit(0b00010000);//Do selftest
       waitComm();
       transmit(0b10010000);//Fetch test result
@@ -137,6 +136,8 @@ class Slave {
         waitComm();//Waiting until slave is in standby
         Serial.println("Homing scanner");
         transmit(0b01000000);//transmit code to do home
+        waitComm();
+        Serial.println("homing complete");
       }
     }
 
