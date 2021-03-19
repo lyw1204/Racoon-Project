@@ -15,7 +15,7 @@ class PIR {
       _pin = PIN;
       pinMode(_pin, INPUT_PULLUP);
       attachInterrupt(digitalPinToInterrupt(_pin), PIR_handler, RISING);
-      noInterrupts();
+      //noInterrupts();
     }
 
     void enable() {
