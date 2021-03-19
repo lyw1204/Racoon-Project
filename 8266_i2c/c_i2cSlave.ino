@@ -97,20 +97,17 @@ class Slave {
     }
 
     void selfTest() {
-      Serial.println("Self-test begins:");
       transmit(0b11110000);
       transmit(0b00010000);//Do selftest
       waitComm();
       transmit(0b10010000);//Fetch test result
       updateState();
       _healthState = _latestState;
-      Serial.printf("Self-test Result: %d\n", _healthState);
       if (_healthState != 0b00000000) {
         while (true) {
           errorTones(_healthState);
         }
       }
-      Serial.println("Self-test PASS!");
       transmit(0b11110000);//Reset to standby
     }
 
@@ -133,7 +130,6 @@ class Slave {
     void homeScanner() {
       updateState();
       if (_homed) {
-        Serial.println("Already homed, homing skipped");
         return;
       }
       else {
@@ -146,18 +142,17 @@ class Slave {
     }
 
     void getBaseline() {//scans baseline, and homes scanner when complete
-      Serial.println("Baseline program started");
+      Serial.println("Waiting for slave");
       waitComm();//Waiting until slave is in standby
 
       if (!_homed) { //Scanner is NOT homed at beginning
         homeScanner();
       }
 
-      Serial.println("Homed, Scanning baseline");
+      Serial.println("Scanning baseline");
       transmit(0b00100000);//transmit code to do baseline
       waitComm();
       homeScanner();
-      Serial.println("Baseline complete");
     }
 
     bool getDepthNow() {//Scans now, does NOT home when complete
@@ -165,14 +160,13 @@ class Slave {
       if (!_homed) { //Scanner is NOT homed at beginning
         homeScanner();
       }
-      Serial.println("Homed, Scanning now");
+      Serial.println("Scanning now");
       transmit(0b00110000);//do scanNow
       waitComm();
       transmit(0b10110000);//fetch scanNow result
       updateState();
       byte result = _latestState;
       transmit(0b11110000);//reset slaveState to standby
-      Serial.println("ScanNow Complete");
       if (result) {//is human
         return true;
       }
