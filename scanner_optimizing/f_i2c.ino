@@ -81,9 +81,9 @@ void slaveExecute() {
       break;
 
     case 0b0010: //scan baseline
-      slaveState = 0b00000000;//Scanning baseline
+      slaveState = 0b01000000;//Scanning baseline
       myScanner.scanFaster(depthBaseline);
-      slaveState = 0b00010000;
+      slaveState = 0b00000000;
       cmd = 0;
       break;
 
