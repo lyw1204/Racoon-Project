@@ -128,7 +128,7 @@ class Slave {
       delay(2000);
     }
     void homeScanner() {
-      updateState();
+      waitComm();//Wait until scanner is free, grab latest state
       if (_homed) {
         return;
       }
@@ -136,7 +136,7 @@ class Slave {
         waitComm();//Waiting until slave is in standby
         Serial.println("Homing scanner");
         transmit(0b01000000);//transmit code to do home
-        waitComm();
+        waitComm();//Wait until scanner is free again
         Serial.println("homing complete");
       }
     }
@@ -148,10 +148,8 @@ class Slave {
       if (!_homed) { //Scanner is NOT homed at beginning
         homeScanner();
       }
-
       Serial.println("Scanning baseline");
       transmit(0b00100000);//transmit code to do baseline
-      waitComm();
       homeScanner();
     }
 
