@@ -73,7 +73,7 @@ class Slave {
         delay(500);
         updateState();
         
-        if ((_latestState && 0b11100000) == 0b00000000) {
+        if (_latestState == 0b00000000) {
           Serial.println("scanner is freee");
           return true;
         }
@@ -150,6 +150,7 @@ class Slave {
       }
       Serial.println("Scanning baseline");
       transmit(0b00100000);//transmit code to do baseline
+      waitComm();
       homeScanner();
     }
 
