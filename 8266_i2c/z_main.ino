@@ -5,6 +5,7 @@ void setup() {
   Serial.begin(9600);  // start serial for output  
   wifiConnect();
   scanner.selfTest();
+  delay(2000);
   scanner.getBaseline();
 }
 
