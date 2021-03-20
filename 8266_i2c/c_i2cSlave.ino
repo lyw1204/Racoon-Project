@@ -28,7 +28,7 @@ class Slave {
     }
 
     bool waitComm() { //Blocks execution until slave is in standby, or times out after 100s
-      delay(1000);
+      delay(500);
       for (int i = 0; i < 100; i++)
       {
         if (requestSlave()<<5 == 0b00000000) {
@@ -86,18 +86,28 @@ class Slave {
       delay(2000);
     }
     void homeScanner() {
+      waitComm();//Wait until scanner is free, grab latest state
+      updateState();
+      if (_homed) {
+        return;
+      }
+      else {
         Serial.println("Homing scanner");
         transmit(0b01000000);//transmit code to do home
         waitComm();//Wait until scanner is free again
         Serial.println("homing complete");
+      }
     }
 
     void getBaseline() {//scans baseline, and homes scanner when complete
       Serial.println("Baseline scan program begins:");
       waitComm();//Waiting until slave is in standby
 
-      homeScanner();
+      if (!_homed) { //Scanner is NOT homed at beginning
+        homeScanner();
+      }
       Serial.println("Scanning baseline");
+      waitComm();
       transmit(0b00100000);//transmit code to do baseline
       waitComm();
       homeScanner();
@@ -106,7 +116,10 @@ class Slave {
     bool getDepthNow() {//Scans now, does NOT home when complete
       Serial.println("ScanNow program begins:");
       waitComm();//wait until scanner in standby state
-
+      updateState();
+      if (!_homed) { //Scanner is NOT homed at beginning
+        homeScanner();
+      }
       Serial.println("Scanning now");
       transmit(0b00110000);//do scanNow
       waitComm();
