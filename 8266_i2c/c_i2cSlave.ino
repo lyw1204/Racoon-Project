@@ -1,3 +1,41 @@
+//I2C communication
+class Stack { //implements cyclic buffer for tx and rx
+  private:
+    int _size;
+    byte * _stack;
+    byte _top = 0;
+    byte _bottom = 0;
+
+  public:
+    Stack(int SIZE) {
+      _size = SIZE;
+      _stack = new byte [_size];
+    }
+
+    void push(byte val) {
+      _stack [_top] = val;
+      _top ++;
+      _top = _top % _size;
+    }
+
+    byte pop() {
+      byte retVal = _stack[_bottom];
+      _bottom++;
+      _bottom = _bottom % _size;
+      return retVal;
+    }
+
+    bool isEmpty() {
+      return (_bottom == _top);
+    }
+};
+Stack execStack(64);
+
+
+
+
+bool pirFlag = false;
+
 class Slave {
   private:
     uint8_t _address;
@@ -20,7 +58,7 @@ class Slave {
       return rx;
     }
 
-    void updateState() { //Updates internal state variables
+    void updateState() {
       byte result = requestSlave();
       Serial.printf("State updated: %d \n", result);
       _latestState = result >> 5;
@@ -31,7 +69,8 @@ class Slave {
       delay(500);
       for (int i = 0; i < 100; i++)
       {
-        if (requestSlave()<<5 == 0b00000000) {
+        updateState();
+        if (_latestState == 0b00000000) {
           Serial.println("scanner is free");
           return true;
         }
@@ -87,7 +126,6 @@ class Slave {
     }
     void homeScanner() {
       waitComm();//Wait until scanner is free, grab latest state
-      updateState();
       if (_homed) {
         return;
       }
@@ -116,7 +154,6 @@ class Slave {
     bool getDepthNow() {//Scans now, does NOT home when complete
       Serial.println("ScanNow program begins:");
       waitComm();//wait until scanner in standby state
-      updateState();
       if (!_homed) { //Scanner is NOT homed at beginning
         homeScanner();
       }
@@ -124,9 +161,9 @@ class Slave {
       transmit(0b00110000);//do scanNow
       waitComm();
       transmit(0b10110000);//fetch scanNow result
-      byte result = requestSlave();
+      updateState();
+      byte result = _latestState;
       transmit(0b11110000);//reset slaveState to standby
-      waitComm();
       Serial.println("ScanNow completed");
       if (result) {//is human
         return true;
@@ -142,9 +179,9 @@ class Slave {
       transmit(0b01010000);//Do deter
       waitComm();
       transmit(0b11010000);//Load unused deter data
-      byte _unusedDeter = requestSlave();//Tells use which one of 3 deterrence is not used
+      updateState();
+      byte _unusedDeter = _latestState;//Tells use which one of 3 deterrence is not used
       transmit(0b11110000);//Rest slaveState to standby
-      waitComm();
       //Upload alarm record here
     }
 
