@@ -1,7 +1,9 @@
 //PIR Interrupt Handling
+
+bool pirFlag = false;
+
 ICACHE_RAM_ATTR void PIR_handler() {
   Serial.println("PIR TRIGGERED!");
-  execStack.push(2);//Adds an scanNow event into execStack upon interrupt by PIR
   pirFlag = true; 
 }
 
