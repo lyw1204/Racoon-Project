@@ -1,5 +1,42 @@
 //I2C communications
+class Buffer { //implements cyclic buffer for tx and rx
+  private:
+    int _size;
+    byte * _stack;
+    byte _top = 0;
+    byte _bottom = 0;
 
+  public:
+    Buffer(int SIZE) {
+      _size = SIZE;
+      _stack = new byte [_size];
+    }
+
+    void push(byte val) {
+      _stack [_top] = val;
+      _top ++;
+      _top = _top % _size;
+    }
+
+    byte pop() {
+      byte retVal = _stack[_bottom];
+      _bottom++;
+      _bottom = _bottom % _size;
+      return retVal;
+    }
+
+    void bufferFlush() {
+      _top = 0;
+      _bottom = 0;
+    }
+
+    bool isEmpty() {
+      return (_bottom == _top);
+    }
+};
+
+Buffer txBuffer(BUFFER_SIZE);
+Buffer rxBuffer(BUFFER_SIZE);
 byte slaveState = 0b00000000;
 byte cmd = 0b00000000; //Incoming commands from master
 byte selfTest = 0b00000000;
@@ -24,6 +61,12 @@ void receiveEvent() {
 
 
 void slaveExecute() {
+  Serial.println("cmd");
+  Serial.println(cmd);
+  Serial.println("slavestate");
+  Serial.println(slaveState);
+
+ 
   switch (cmd>>4) { //Interprets different commands and do different things
     case 0b0000:// Designated standby, will accept command.
       //delay(50);
@@ -104,7 +147,6 @@ void slaveExecute() {
       break;
 
     default: //Do nothing
-      Serial.println("ERROR: Invalid cmd case received");
       cmd = 0;
       break;
   }

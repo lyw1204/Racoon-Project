@@ -97,14 +97,15 @@ class Scanner {
       servoY.write(Y_OFFSET);
       //Return scanner back to its resting position facing back
       goToPos(-15, 0);
-      delay(300);
       while (digitalRead(this->limSwPin) == HIGH) {
         stepperX->step(1);//Step motor until limit switch is clicked
         delay(15);
       }
+
       xPos = 0;
       yPos = 0;
       scanner_homed = true;
+      delay(300);
     }
 
     void scanFaster (short matrix [Y_RES][X_RES]) {

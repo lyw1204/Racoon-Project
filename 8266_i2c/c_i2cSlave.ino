@@ -66,12 +66,15 @@ class Slave {
     }
 
     bool waitComm() { //Blocks execution until slave is in standby, or times out after 100s
-      delay(500);
+      delay(1000);//Give arduino time to update its state
       for (int i = 0; i < 100; i++)
       {
+        transmit(0b10000000);//Fetch state command
+        delay(500);
         updateState();
+        
         if (_latestState == 0b00000000) {
-          Serial.println("scanner is free");
+          Serial.println("scanner is freee");
           return true;
         }
         Serial.println("Scanner busy, execution blocked by 1s.");
@@ -130,6 +133,7 @@ class Slave {
         return;
       }
       else {
+        waitComm();//Waiting until slave is in standby
         Serial.println("Homing scanner");
         transmit(0b01000000);//transmit code to do home
         waitComm();//Wait until scanner is free again
@@ -138,21 +142,19 @@ class Slave {
     }
 
     void getBaseline() {//scans baseline, and homes scanner when complete
-      Serial.println("Baseline scan program begins:");
+      Serial.println("Waiting for slave");
       waitComm();//Waiting until slave is in standby
 
       if (!_homed) { //Scanner is NOT homed at beginning
         homeScanner();
       }
       Serial.println("Scanning baseline");
-      waitComm();
       transmit(0b00100000);//transmit code to do baseline
       waitComm();
       homeScanner();
     }
 
     bool getDepthNow() {//Scans now, does NOT home when complete
-      Serial.println("ScanNow program begins:");
       waitComm();//wait until scanner in standby state
       if (!_homed) { //Scanner is NOT homed at beginning
         homeScanner();
@@ -164,7 +166,6 @@ class Slave {
       updateState();
       byte result = _latestState;
       transmit(0b11110000);//reset slaveState to standby
-      Serial.println("ScanNow completed");
       if (result) {//is human
         return true;
       }
