@@ -66,8 +66,8 @@ void slaveExecute() {
   Serial.println("slavestate");
   Serial.println(slaveState);
 
-  cmdT = cmd >> 4;//First four bits of cmd
-  switch (cmdT) { //Interprets different commands and do different things
+ 
+  switch (cmd>>4) { //Interprets different commands and do different things
     case 0b0000:// Designated standby, will accept command.
       //delay(50);
       break;
