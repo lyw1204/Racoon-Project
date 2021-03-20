@@ -36,4 +36,3 @@
 
 //I2C Configuration
 #define SLAVE_ADDR 8
-#define BUFFER_SIZE 16
