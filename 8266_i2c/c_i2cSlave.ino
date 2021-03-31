@@ -34,6 +34,7 @@ Stack execStack(64);
 
 
 
+bool pirFlag = false;
 
 class Slave {
   private:
@@ -61,27 +62,19 @@ class Slave {
     Slave(unsigned short address) {
       _address = address;
     }
-    void goHome(){
-      Serial.println("Homing");
-      transmit(0);
-      delay(HOME_TIME);
-      requestSlave();
-      Serial.println("Homing complete");
-      
-      
-      }
+
     void getBaseline() {
       Serial.println("getting baseline now");
 
       transmit(1);
-      delay(SCAN_TIME);//Wait for scan to complete, should change to nonblocking in future
+      delay(60000);//Wait for scan to complete, should change to nonblocking in future
       requestSlave();
       Serial.println("Baseline complete");
     }
     bool getDepthNow() {
       Serial.println("Scanning now");
       transmit(2); //Tell arduino to scanNow over I2C
-      delay(SCAN_TIME);//Wait for scan to complete, should change to nonblocking in future
+      delay(60000);//Wait for scan to complete, should change to nonblocking in future
       byte result = requestSlave();
       if (result) {//is human
         return true;
@@ -94,14 +87,14 @@ class Slave {
     void alarm() {
       transmit(3);
       Serial.println("Alarm Triggered! You are not a human. ");
-      delay(DET_TIME);
+      delay(5000);
       requestSlave();
 
     }
 
     void selfTest() {
       transmit(4);
-      delay(BUS_WAIT);
+      delay(500);
       _healthState = requestSlave();
       //_healthState = 0b00001111;
       Serial.print("Health Test:");
@@ -127,16 +120,15 @@ class Slave {
         }
         delay(500);
         noTone(SPEAKER);
-        delay(100);
+        delay(500);
         tempHealth >>= 1; //shift health bit left
       }
 
-      delay(1000);
+      delay(2000);
     }
 
   void bufferFlush(){
     transmit(5);
-    delay(BUS_WAIT);
     Serial.println("Slave buffer flushed");
     //requestSlave();
     }
