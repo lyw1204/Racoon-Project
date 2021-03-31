@@ -1,10 +1,10 @@
 
 void setup() {
   Serial.begin(9600);
-  slaveBegin();
 }
 
 void loop() {
+  rxBuffer.push(1);
   while(!rxBuffer.isEmpty()){
     slaveExecute();    
     }

@@ -35,24 +35,9 @@ class Buffer{//implements cyclic buffer for tx and rx
       }
   };
 
-void slaveBegin(){
-  Wire.begin(SLAVE_ADDR);
-  Wire.onReceive(receiveEvent);
-  Wire.onRequest(requestEvent);
-  }
 
 
-Buffer txBuffer(BUFFER_SIZE);
 Buffer rxBuffer(BUFFER_SIZE);
-
-void requestEvent(){
-  //Pop txBuffer and write onto I2C
-  Wire.write(txBuffer.pop());
-  }
-
-void receiveEvent(){
-  rxBuffer.push(Wire.read());
-  }
 
 void slaveExecute(){
   byte cmd = rxBuffer.pop();//pop a commannd from rxBuffer
@@ -60,12 +45,10 @@ void slaveExecute(){
   switch (cmd){//Interprets different commands and do different things
     case 0: //scanner home
       myScanner.goHome();
-      txBuffer.push(0);
       break;
 
     case 1: //scan baseline, return 0
       myScanner.scanFaster(depthBaseline);
-      txBuffer.push(0);
       break;
 
     case 2: //scan now, return judgement 1 = human, 0 = raccoon
@@ -73,31 +56,24 @@ void slaveExecute(){
       diffMatrix(depthBaseline, depthNow);//Subtract baseline from depthNow
       medianFilter(depthNow);
       printMatrix(depthNow);
-      txBuffer.push(judgeMatrix(depthNow));
       break;
 
     case 3: //random alarm, return 0
       Serial.println("ALARM!");
       ta1.deploy();
-      txBuffer.push(0);
       break;
 
     case 4: //self, test, return 
-      Serial.println("SELF-TEST DUMMY PROGRAM");
-      txBuffer.push(0b00000000); //Fake test for now
-      
+      Serial.println("SELF-TEST DUMMY PROGRAM");      
       break;
 
     case 5: //Buffer Flush
-      txBuffer.bufferFlush();
       break;
 
     case 6: //reserved
-      txBuffer.push(0);
       break;
 
     default://Do nothing
-      txBuffer.push(0b11111111);//0b11111111 indicates trransmission failure to 8266, host should retransmit
       break;
 
     }
