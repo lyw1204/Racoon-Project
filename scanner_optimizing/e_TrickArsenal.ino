@@ -20,21 +20,21 @@ class TrickArsenal{
         case 0:
           digitalWrite(_pin2, HIGH);
           digitalWrite(_pin3, HIGH);
-          delay(1000);
+          delay(3000);
           digitalWrite(_pin2,LOW);
           digitalWrite(_pin3,LOW);
           break;
         case 1:
           digitalWrite(_pin1, HIGH);
           digitalWrite(_pin3, HIGH);
-          delay(1000);
+          delay(3000);
           digitalWrite(_pin1,LOW);
           digitalWrite(_pin3,LOW);        
           break;
         case 2:
           digitalWrite(_pin1, HIGH);
           digitalWrite(_pin2, HIGH);
-          delay(1000);
+          delay(3000);
           digitalWrite(_pin1,LOW);
           digitalWrite(_pin2,LOW);        
           break;

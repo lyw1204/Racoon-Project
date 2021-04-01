@@ -94,22 +94,22 @@ class Scanner {
 
     void goHome() {
       powerOn();
-      servoY.write(Y_OFFSET);
-      while (digitalRead(this->limSwPin) == HIGH) {
-        stepperX->step(1);//Step motor until limit switch is clicked
+      goToPos(-15,0);
+
+       while(digitalRead(limSwPin)==HIGH){
+        stepperX->step(1);
         delay(15);
-      }
+        }
 
-
-      xPos = 0;
-      yPos = 0;
-      scanner_homed = true;
-      delay(300);
+        xPos = 0;
+        yPos = 0;
+        scanner_homed = true;
+        return; 
     }
 
-    void scanFaster (short matrix [Y_RES][X_RES]) {
+    void scanFaster (short matrix [Y_RES][X_RES]) {//Takes 35s currently
       powerOn();
-      goHome();
+      //goHome();
       for (int j = 0; j < X_RES; j++) {
         for (int i = 0; i < Y_RES; i++) {
           if (j % 2 == 0) {
@@ -124,10 +124,9 @@ class Scanner {
 
       }
       //Return scanner back to its resting position facing back
-      goToPos(-15, 0);
+      //goToPos(-15, 0);
       scanner_homed = false;
       powerOff();  
-      //medianFilter(matrix);//Make it look nice and pretty
     }
 };
 

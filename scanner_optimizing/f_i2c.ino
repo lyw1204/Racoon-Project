@@ -92,8 +92,8 @@ void slaveExecute(){
       txBuffer.bufferFlush();
       break;
 
-    case 6: //reserved
-      txBuffer.push(0);
+    case 6: //Standalone homing command
+      myScanner.goHome();
       break;
 
     default://Do nothing

@@ -8,3 +8,8 @@
 
 #define MASTER_ADDR 1
 #define SLAVE_ADDR 8
+
+
+#define WAIT_SCAN 40000
+#define WAIT_HOME 15000
+#define WAIT_DETER 8000

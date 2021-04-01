@@ -65,16 +65,17 @@ class Slave {
 
     void getBaseline() {
       Serial.println("getting baseline now");
-
+      homeScanner();
       transmit(1);
-      delay(60000);//Wait for scan to complete, should change to nonblocking in future
+      delay(WAIT_SCAN);//Wait for scan to complete, should change to nonblocking in future
       requestSlave();
       Serial.println("Baseline complete");
+      homeScanner();
     }
     bool getDepthNow() {
       Serial.println("Scanning now");
       transmit(2); //Tell arduino to scanNow over I2C
-      delay(60000);//Wait for scan to complete, should change to nonblocking in future
+      delay(WAIT_SCAN);//Wait for scan to complete, should change to nonblocking in future
       byte result = requestSlave();
       if (result) {//is human
         return true;
@@ -87,7 +88,7 @@ class Slave {
     void alarm() {
       transmit(3);
       Serial.println("Alarm Triggered! You are not a human. ");
-      delay(5000);
+      delay(WAIT_DETER);
       requestSlave();
 
     }
@@ -132,6 +133,15 @@ class Slave {
     Serial.println("Slave buffer flushed");
     //requestSlave();
     }
+
+  void homeScanner(){
+    transmit(6);
+    Serial.println("Homing scanner");
+    delay(WAIT_HOME);    
+    
+    }
+
+    
 };
 
 

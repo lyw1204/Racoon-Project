@@ -82,7 +82,7 @@ bool judgeMatrix(short matrix[Y_RES][X_RES]){//Returns true if human, else false
     colAccum[i-1] = 0;//Initializes colAccum array elements
     
     for(short j = 1; j<X_RES-1; j++){
-      if (matrix[i][j]<0){//Count less-than-zero pixels for every row and store in colAccum
+      if (matrix[i][j]<-10){//Count less-than-zero pixels for every row and store in colAccum
         colAccum[i-1] ++;        
         }
       }

@@ -34,10 +34,12 @@ void loop() {
       tempAlarm();
     }
 
+
     else{
       Serial.println("HUMAN");
       }
     firebaseEventPush(isHuman);
+    scanner.homeScanner();
     pirFlag = false; 
     }
   /*

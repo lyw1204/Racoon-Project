@@ -2,8 +2,8 @@
 #define FIREBASE_HOST "https://raccoonlock-default-rtdb.firebaseio.com/" //Without http:// or https:// schemes
 #define API_KEY "AIzaSyD3QWwmDnP0kIMlcZbPzi0YY0ERE4Ch9kk"
 
-#define WIFI_SSID "DAVID NEW"
-#define WIFI_PASSWORD "c=3.00*10^8m/s"
+#define WIFI_SSID "COGECO-2A72"
+#define WIFI_PASSWORD "408438753577"
 #define USER_EMAIL "racoonlock1@gmail.com"
 #define USER_PASSWORD "1234567890"
 
