@@ -97,7 +97,7 @@ class Scanner {
       goToPos(15,0);
 
        while(digitalRead(limSwPin)==HIGH){
-        stepperX->step(-1);
+        stepperX->step(-10);
         delay(10);
         }
 

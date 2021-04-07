@@ -28,4 +28,4 @@ class PIR {
 };
 
 PIR pir1(PIR_L);//PIR Initialized
-PIR pir2(PIR_R);
+//PIR pir2(PIR_R);
