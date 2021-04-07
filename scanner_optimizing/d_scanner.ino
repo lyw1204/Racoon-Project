@@ -94,11 +94,11 @@ class Scanner {
 
     void goHome() {
       powerOn();
-      goToPos(-15,0);
+      goToPos(15,0);
 
        while(digitalRead(limSwPin)==HIGH){
-        stepperX->step(1);
-        delay(15);
+        stepperX->step(-1);
+        delay(10);
         }
 
         xPos = 0;
@@ -124,7 +124,6 @@ class Scanner {
 
       }
       //Return scanner back to its resting position facing back
-      //goToPos(-15, 0);
       scanner_homed = false;
       powerOff();  
     }
